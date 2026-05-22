@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Event Med AI",
+  "version": "0.1.0",
+  "identifier": "ai.eventmed.app",
+  "build": {
+    "beforeDevCommand": "npm run dev -- -p 3000",
+    "devUrl": "http://localhost:3000",
+    "beforeBuildCommand": "npm run build:tauri",
+    "frontendDist": "../out"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Event Med AI",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 600,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "app", "nsis", "appimage", "deb"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Productivity",
+    "shortDescription": "Offline mass gathering event medicine AI assistant",
+    "longDescription": "Event Med AI is an offline-first assistant for mass gathering event medicine, patient triage, and supplies inventory tracking.",
+    "externalBin": ["binaries/event-med-backend"],
+    "resources": [],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      }
+    }
+  }
+}

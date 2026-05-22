@@ -1,0 +1,111 @@
+[
+  {
+    "collection": "harm_reduction_protocols",
+    "chunks": [
+      {
+        "id": "proto-hyperthermia-cooling",
+        "text": "PROTOCOL: ACTIVE COOLING FOR HYPERTHERMIA & HEAT STROKE\nSeverity Assessment:\n- Mild/Moderate: Temp 100°F - 103°F, sweating, intact mental status. Treat with rest in shade, oral fluids/electrolytes.\n- Severe (Heat Stroke): Temp > 104°F (>40°C) AND altered mental status (confusion, delirium, combativeness, coma). This is a critical medical emergency.\n\nImmediate Field Interventions:\n1. Move patient to the coolest area of the medical tent. Strip off excess clothing.\n2. Initiate aggressive cooling immediately: apply cold water/mist to the skin and use electric fans to maximize evaporative cooling. Place ice packs on axillae, groin, and neck.\n3. If temp is >104°F and patient is altered, start cold water immersion if a tub is available, or wrap in cold, wet sheets.\n4. Administer IV fluids (Normal Saline or Lactated Ringer's) at a moderate rate. Caution: do not overhydrate if hyponatremia is suspected.\n5. Target temperature for stopping active cooling: 101.5°F (38.6°C) to prevent overshoot hypothermia.\n6. For shivering or agitation, administer Midazolam (2.5 - 5mg IV/IM) as ordered by the physician.",
+        "metadata": {
+          "title": "Active Cooling Protocol",
+          "category": "heat_stroke",
+          "page": 1
+        }
+      },
+      {
+        "id": "proto-serotonin-syndrome",
+        "text": "PROTOCOL: SEROTONIN SYNDROME ASSESSMENT & CRITERIA\nSerotonin Syndrome is a life-threatening drug reaction caused by excessive serotonergic activity (common with MDMA, MDA, or MDMA mixed with SSRIs/MAOIs/Tricyclic antidepressants).\n\nHunter Toxicity Criteria (to diagnose, patient must have taken a serotonergic agent AND have one of the following):\n1. Spontaneous clonus (muscle spasms)\n2. Inducible clonus AND agitation or diaphoresis (heavy sweating)\n3. Ocular clonus AND agitation or diaphoresis\n4. Tremor AND hyperreflexia (overactive reflexes)\n5. Hypertonia AND temperature > 100.4°F (>38°C) AND ocular or inducible clonus\n\nClinical Warning Signs:\n- Neuromuscular: tremor, rigidity, hyperreflexia, clonus, bilateral Babinski signs.\n- Autonomic: tachycardia, hypertension, diaphoresis, mydriasis (dilated pupils), hyperthermia (>104°F in severe cases).\n- Mental Status: agitation, excitement, delirium, confusion.\n\nManagement:\n- Discontinue all serotonergic agents.\n- Provide supportive care: IV fluids and aggressive cooling.\n- First-line control for agitation and muscle activity: Benzodiazepines (Diazepam 5-10mg IV or Midazolam 2.5-5mg IV/IM). Avoid physical restraints if possible as isometric exercise worsens hyperthermia and rhabdomyolysis.\n- For severe hyperthermia (>104°F), initiate active cooling and prepare for emergency transport.",
+        "metadata": {
+          "title": "Serotonin Syndrome Protocol",
+          "category": "toxicology",
+          "page": 2
+        }
+      },
+      {
+        "id": "proto-hyponatremia",
+        "text": "PROTOCOL: HYPONATREMIA VS DEHYDRATION IN FESTIVAL PATIENTS\nAt EDM festivals, patients often present with dehydration (due to sweating and heat) or hyponatremia (water intoxication from excessive water drinking without sodium replacement, common in MDMA users due to drug-induced SIADH).\n\nKey Differences:\n- Dehydration: Thirst, dry mucous membranes, tachycardia, concentrated urine. Treatment: Oral electrolyte solutions or IV Normal Saline (1-2L).\n- Hyponatremia: GCS changes, headache, nausea, vomiting, confusion, gait instability, and in severe cases, seizures and coma. Skin may look normal/hydrated. Treatment: DO NOT give free water. Strict fluid restriction if mild/moderate. If severe (seizures, coma), administer Hypertonic Saline (3% NaCl, 100mL bolus over 10 min, up to 3 times) and arrange immediate transport.\n\nActionable tent guidance:\nIf an MDMA user presents with confusion, altered mental status, and has a history of drinking 'gallons' of water to stay safe, suspect hyponatremia. Checking serum sodium (if point-of-care i-STAT is available) is highly recommended before running large volumes of hypotonic or normal saline fluids.",
+        "metadata": {
+          "title": "Hyponatremia Protocol",
+          "category": "toxicology",
+          "page": 3
+        }
+      },
+      {
+        "id": "proto-rhabdomyolysis",
+        "text": "PROTOCOL: RHABDOMYOLYSIS ASSESSMENT\nRhabdomyolysis (muscle breakdown) is a severe complication of prolonged dancing, hyperthermia, dehydration, and stimulant use (MDMA, cocaine, methamphetamine).\n\nKey Indicators:\n- Severe muscle pain, weakness, and tenderness.\n- Dark, tea-colored or cola-colored urine (due to myoglobinuria).\n- Oliguria (low urine output) or anuria (no urine output).\n- Elevated Creatine Kinase (CK) levels (if lab testing available).\n\nTreatment in the Field Tent:\n1. Initiate aggressive IV hydration: Normal Saline at 200 - 500 mL/hour to maintain high urine output (target 200-300 mL/hr).\n2. Monitor fluid input and output strictly. If urine output fails to increase despite fluid volume, suspect acute kidney injury (AKI) and stop aggressive hydration to prevent volume overload.\n3. Check electrolytes, especially Potassium (risk of hyperkalemia due to cell lysis) and Calcium.\n4. Rapid transport to Samaritan or Central Washington Hospital for renal monitoring.",
+        "metadata": {
+          "title": "Rhabdomyolysis Assessment",
+          "category": "clinical",
+          "page": 4
+        }
+      },
+      {
+        "id": "proto-opioid-overdose",
+        "text": "PROTOCOL: OPIOID OVERDOSE & NALOXONE (NARCAN) ADMINISTRATION\nOpioid overdose (heroin, fentanyl, oxycodone) causes respiratory depression (RR < 8 or hypopnea), pinpoint pupils, cyanosis (blue skin/lips), and unresponsive coma.\n\nFirst Aid & Medical Tent Steps:\n1. Verify airway patency. Inquire about ingestion history. If unresponsive with snoring or agonal breathing, start bag-valve-mask (BVM) ventilations with 100% oxygen.\n2. Administer Naloxone (Narcan):\n   - Nasal spray: 4mg in one nostril. Repeat in opposite nostril in 2-3 minutes if no response.\n   - IV/IM: 0.4mg - 2mg. Repeat every 2-3 minutes up to 10mg if needed.\n3. Goal: Restore adequate spontaneous ventilation (RR > 12, GCS improvement), NOT necessarily full consciousness. Avoid precipitate severe withdrawal (agitation, vomiting, combativeness) by titration where possible.\n4. Monitor for at least 1-2 hours post-administration. The half-life of Naloxone is shorter than most opioids; patient can slip back into overdose/respiratory depression. If long-acting opioid (e.g. fentanyl analog) is suspected, transport is mandatory.",
+        "metadata": {
+          "title": "Opioid Overdose Protocol",
+          "category": "overdose",
+          "page": 5
+        }
+      },
+      {
+        "id": "proto-ghb-intoxication",
+        "text": "PROTOCOL: GHB INTOXICATION & ASPIRATION PREVENTION\nGHB (Gamma-Hydroxybutyrate) is a central nervous system depressant popular in club environments. It has a steep dose-response curve and is frequently combined with alcohol, leading to rapid onset coma.\n\nPresentation:\n- GCS drops rapidly, often fluctuating (e.g., patient is comatose, then suddenly wakes up combative, then falls back asleep).\n- Respiratory depression, bradycardia, hypothermia.\n- High risk of vomiting and pulmonary aspiration.\n\nManagement in the Medical Tent:\n1. Secure and protect airway. If breathing is adequate but patient is comatose, place in the Recovery Position (lateral decubitus) to prevent airway obstruction and aspiration if they vomit.\n2. Administer supplemental oxygen. Monitor SpO2 and respiratory rate continuously.\n3. If respiratory drive is insufficient (RR < 8, SpO2 < 90%), support with bag-valve-mask (BVM) ventilations and prepare for intubation / transport.\n4. GHB has no antidote. Treatment is supportive. Most patients recover spontaneously within 4-6 hours as the drug is metabolized, but vigilantly prevent airway obstruction.",
+        "metadata": {
+          "title": "GHB Intoxication Protocol",
+          "category": "toxicology",
+          "page": 6
+        }
+      },
+      {
+        "id": "proto-ama-refusal",
+        "text": "PROTOCOL: AGAINST MEDICAL ADVICE (AMA) CAPACITY ASSESSMENT\nIf a patient wishes to leave the medical tent against medical advice, you must perform and document a rigorous clinical capacity assessment. Intoxicated patients DO NOT automatically lack capacity, but they must be assessed carefully.\n\nCapacity Checklist (Patient must demonstrate all four):\n1. Communicates a Choice: Can clearly state their decision to leave.\n2. Understands Relevant Info: Can explain the diagnosis, severity of their condition, and proposed treatments in their own words.\n3. Appreciates the Consequences: Acknowledges the risks of leaving (including permanent disability or death, e.g., 'I understand that if I leave with this high body temperature, my organs could fail').\n4. Reasons Logically: Weighs the options and shows a logical rational process for their choice.\n\nDocumentation Requirements:\n- Explicit answers to the 4 capacity questions.\n- Presence of an escort/sober friend (log their name/phone number).\n- Vital signs at time of refusal.\n- Clinical disclaimer read to the patient.\n- Signed AMA form (if patient refuses to sign, document witness name/signature).\n\nIf the patient lacks capacity (e.g., GCS < 15, severe delirium, combative, hallucinating, unable to understand risks) and leaving poses an immediate threat to life/limb, the medical staff has a duty to retain the patient under implied consent or emergency hold protocols. Involve venue security or law enforcement if necessary for staff safety.",
+        "metadata": {
+          "title": "AMA Capacity Protocol",
+          "category": "liability",
+          "page": 7
+        }
+      }
+    ]
+  },
+  {
+    "collection": "substance_database",
+    "chunks": [
+      {
+        "id": "sub-mdma",
+        "text": "SUBSTANCE PROFILE: MDMA (Ecstasy, Molly)\nClass: Entactogen, stimulant.\nMechanism: Promotes release of serotonin, dopamine, and norepinephrine; inhibits reuptake.\nCommon EDM Dose: 80 - 150 mg oral.\n\nAcute Adverse Effects:\n- Mild: Bruxism (jaw clenching), anxiety, mild tachycardia, mydriasis, diaphoresis.\n- Severe: Hyperthermia (>104°F), Serotonin Syndrome, Hyponatremia (SIADH + water loading), seizures, cardiac arrhythmias.\n\nKey Drug Interactions:\n- SSRIs (Prozac, Lexapro, etc.) & SNRIs (Effexor): Block the MDMA response, leading users to take dangerous booster doses. High risk of Serotonin Syndrome.\n- MAOIs (Nardil, Parnate): ABSOLUTE CONTRAINDICATION. High risk of fatal hypertensive crisis and hyperthermia.\n- Alcohol: Increases dehydration and masking effects, raising risk of heat stroke.\n- Ketamine ('Calvin Klein' variant): Increases heart rate and blood pressure synergistically.",
+        "metadata": {
+          "title": "MDMA Profile",
+          "category": "substance",
+          "page": 8
+        }
+      },
+      {
+        "id": "sub-ghb",
+        "text": "SUBSTANCE PROFILE: GHB (G, Liquid Ecstasy, Gamma-Hydroxybutyrate)\nClass: CNS depressant, anesthetic.\nCommon EDM Dose: 1 - 3 grams oral (liquid form is highly concentrated and easy to overdose).\n\nAcute Adverse Effects:\n- Mild: Dizziness, euphoria, loss of coordination, slurred speech.\n- Severe: Sudden unresponsive sleep (coma), respiratory depression, bradycardia, hypothermia, vomiting, seizures, aspiration.\n\nKey Drug Interactions:\n- Alcohol: Severe synergistic respiratory depression. The combination is the leading cause of GHB-related fatalities.\n- Benzodiazepines / Ketamine: Potentiates sedation and respiratory suppression.\n- Stimulants (Cocaine/Meth): Users may mix GHB and stimulants to counteract the sedation, leading to unpredictable spikes in toxicity as the stimulant wears off first.",
+        "metadata": {
+          "title": "GHB Profile",
+          "category": "substance",
+          "page": 9
+        }
+      },
+      {
+        "id": "sub-ketamine",
+        "text": "SUBSTANCE PROFILE: KETAMINE (Special K, Vitamin K)\nClass: Dissociative anesthetic, NMDA receptor antagonist.\nCommon EDM Dose: 20 - 100 mg (insufflated, 'bump').\n\nAcute Adverse Effects:\n- Mild: Dissociation, nystagmus, mild hypertension, loss of motor control, confusion.\n- Severe ('K-hole'): Complete sensory detachment, severe agitation on emergence, muscle rigidity, tachycardia, bladder issues (chronic use).\n\nKey Drug Interactions:\n- Cocaine: Synergistic cardiovascular strain (tachycardia and hypertension).\n- Alcohol / Depressants: Increases risk of nausea, vomiting, and loss of airway protective reflexes.\n- Psychedelics (LSD/Mushrooms): Dramatically amplifies hallucinogenic effects, potentially inducing severe panic/psychological distress in festival environments.",
+        "metadata": {
+          "title": "Ketamine Profile",
+          "category": "substance",
+          "page": 10
+        }
+      },
+      {
+        "id": "sub-cocaine",
+        "text": "SUBSTANCE PROFILE: COCAINE\nClass: Sympathomimetic stimulant.\nMechanism: Inhibits dopamine, norepinephrine, and serotonin reuptake.\n\nAcute Adverse Effects:\n- Mild: Tachycardia, hypertension, anxiety, diaphoresis.\n- Severe: Hyperthermia, severe agitation/delirium, coronary vasospasm, myocardial infarction, seizures, cardiac arrest.\n\nKey Drug Interactions:\n- Alcohol: Forms Cocaethylene in the liver, which has a longer half-life and is significantly more cardiotoxic than cocaine alone.\n- Ketamine: Synergistic increase in blood pressure and heart rate.\n- MDMA/Stimulants: Extreme sympathomimetic overload, drastically raising risk of hypertensive crisis, arrhythmias, and heat stroke.",
+        "metadata": {
+          "title": "Cocaine Profile",
+          "category": "substance",
+          "page": 11
+        }
+      }
+    ]
+  }
+]
