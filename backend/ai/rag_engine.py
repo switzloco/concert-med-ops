@@ -12,7 +12,9 @@ _DATA_DIR = os.getenv(
     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"),
 )
 _DB_PATH = os.path.join(_DATA_DIR, "knowledge.sqlite")
-_BUNDLED_KB_PATH = os.path.join(_DATA_DIR, "harm_reduction_kb.json")
+_BUNDLED_KB_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "harm_reduction_kb.json")
+)
 
 
 def _connect() -> sqlite3.Connection:
