@@ -69,6 +69,13 @@ def main() -> None:
 
     # Only run migrations if we are using Alembic
     _run_migrations()
+
+    # Ensure tables are created in the database before querying/seeding
+    from backend.db.database import Base, engine
+    import backend.db.models  # Loads all models to register on Base.metadata
+    print("Initializing database tables...")
+    Base.metadata.create_all(bind=engine)
+
     _auto_seed()
 
     import uvicorn
