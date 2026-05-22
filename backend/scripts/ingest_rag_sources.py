@@ -43,7 +43,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Optional
 
 # ── path setup ───────────────────────────────────────────────────────────────
 _REPO_ROOT = Path(__file__).parent.parent.parent
@@ -375,56 +375,96 @@ def _fetch_pdf(url: str, alt_urls: list[str], dest_path: Path) -> Optional[Path]
     return None
 
 
-def _extract_pdf_text(pdf_path: Path) -> str:
-    """Extract plain text from PDF using PyMuPDF (fitz)."""
+def _extract_pdf_pages(pdf_path: Path) -> list[tuple[int, str]]:
+    """
+    Extract text per page from a PDF using PyMuPDF.
+
+    Returns a list of (1-based page_number, page_text) tuples so the
+    chunker can track which source page each chunk starts and ends on.
+    """
     try:
         import fitz  # PyMuPDF
     except ImportError:
         print("  ✗ pymupdf not installed — run: pip install pymupdf")
-        return ""
+        return []
 
     doc = fitz.open(str(pdf_path))
-    pages = []
+    pages: list[tuple[int, str]] = []
     for page in doc:
         text = page.get_text("text")
-        # Normalise ligatures and soft-hyphens common in PDFs
         text = text.replace("ﬁ", "fi").replace("ﬂ", "fl").replace("\xad", "")
-        pages.append(text)
+        text = text.strip()
+        if text:
+            pages.append((page.number + 1, text))  # 1-based
     doc.close()
-    return "\n".join(pages)
+    return pages
 
 
-def _fetch_html_text(url: str) -> str:
-    """Fetch and extract main content from an HTML page using trafilatura."""
+def _fetch_html_sections(url: str) -> list[tuple[str, str]]:
+    """
+    Fetch an HTML page and split it into (section_heading, section_text) pairs.
+
+    trafilatura returns plain text with Markdown-style headings when
+    include_formatting=True. We split on heading lines (# / ## / ###) so each
+    section carries its heading as metadata.  Falls back to a single
+    (title, full_text) pair when no headings are detected.
+    """
     try:
         import trafilatura
     except ImportError:
         print("  ✗ trafilatura not installed — run: pip install trafilatura")
-        return ""
+        return []
 
     try:
         print(f"  Fetching HTML: {url}")
         downloaded = trafilatura.fetch_url(url)
         if not downloaded:
             print(f"  ✗ trafilatura could not fetch {url}")
-            return ""
+            return []
         text = trafilatura.extract(
             downloaded,
             include_tables=True,
             include_formatting=True,
             no_fallback=False,
         )
-        if text:
-            print(f"  ✓ Extracted {len(text.split()):,} words")
-            return text
-        print(f"  ✗ trafilatura extracted no content from {url}")
-        return ""
+        if not text:
+            print(f"  ✗ trafilatura extracted no content from {url}")
+            return []
+
+        print(f"  ✓ Extracted {len(text.split()):,} words")
+
+        # Split on Markdown headings
+        heading_pattern = re.compile(r"^(#{1,3})\s+(.+)$", re.MULTILINE)
+        matches = list(heading_pattern.finditer(text))
+
+        if not matches:
+            return [("Main Content", text)]
+
+        sections: list[tuple[str, str]] = []
+        # Text before the first heading
+        preamble = text[: matches[0].start()].strip()
+        if preamble:
+            sections.append(("Introduction", preamble))
+
+        for i, m in enumerate(matches):
+            heading = m.group(2).strip()
+            body_start = m.end()
+            body_end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            body = text[body_start:body_end].strip()
+            if body:
+                sections.append((heading, body))
+
+        return sections
+
     except Exception as exc:
         print(f"  ✗ Error fetching HTML {url}: {exc}")
-        return ""
+        return []
 
 
 # ── Chunking ──────────────────────────────────────────────────────────────────
+
+PagedChunk = tuple[str, int, int]  # (text, page_start, page_end)
+
 
 def _split_into_paragraphs(text: str) -> list[str]:
     """Split text into coarse semantic units (double-newline paragraphs, numbered items)."""
@@ -500,6 +540,84 @@ def chunk_text(text: str) -> Iterator[str]:
         yield "\n\n".join(buffer)
 
 
+def chunk_paged_text(pages: list[tuple[int, str]]) -> Iterator[PagedChunk]:
+    """
+    Page-aware chunker for PDF content.
+
+    Takes a list of (page_num, page_text) pairs and yields
+    (chunk_text, page_start, page_end) tuples.  Each chunk records the
+    first and last PDF page it spans so medics can look up the source.
+    """
+    # Build a flat list of (page_num, paragraph) pairs
+    tagged_paras: list[tuple[int, str]] = []
+    for page_num, page_text in pages:
+        for para in _split_into_paragraphs(page_text):
+            tagged_paras.append((page_num, para))
+
+    if not tagged_paras:
+        return
+
+    buffer: list[str] = []
+    buf_words = 0
+    page_start = tagged_paras[0][0]
+    page_end = tagged_paras[0][0]
+
+    def _emit() -> PagedChunk:
+        return ("\n\n".join(buffer), page_start, page_end)
+
+    for page_num, para in tagged_paras:
+        para_words = _word_count(para)
+
+        # Hard-split overly long paragraphs (same logic as chunk_text)
+        if para_words > MAX_CHUNK_WORDS:
+            sentences = re.split(r"(?<=[.!?])\s+", para)
+            if len(sentences) <= 1:
+                words = para.split()
+                sentences = [
+                    " ".join(words[i: i + MAX_CHUNK_WORDS])
+                    for i in range(0, len(words), MAX_CHUNK_WORDS - OVERLAP_WORDS)
+                ]
+            sub_buf: list[str] = []
+            sub_words = 0
+            for sent in sentences:
+                sw = _word_count(sent)
+                if sub_words + sw > MAX_CHUNK_WORDS and sub_buf:
+                    yield " ".join(sub_buf), page_num, page_num
+                    all_words = " ".join(sub_buf).split()
+                    carry = " ".join(all_words[-OVERLAP_WORDS:])
+                    sub_buf = [carry] if carry else []
+                    sub_words = _word_count(carry)
+                sub_buf.append(sent)
+                sub_words += sw
+            if sub_buf:
+                para = " ".join(sub_buf)
+                para_words = _word_count(para)
+
+        if buf_words + para_words > MAX_CHUNK_WORDS and buf_words >= MIN_CHUNK_WORDS:
+            yield _emit()
+            all_words = "\n\n".join(buffer).split()
+            carry = " ".join(all_words[-OVERLAP_WORDS:])
+            buffer = [carry] if carry else []
+            buf_words = _word_count(carry)
+            page_start = page_num  # reset; carry may span pages
+
+        buffer.append(para)
+        buf_words += para_words
+        page_end = page_num  # track last page seen in this buffer
+
+    if buffer and buf_words >= 20:
+        yield _emit()
+
+
+def chunk_html_section(section_text: str, section_heading: str) -> Iterator[tuple[str, str]]:
+    """
+    Chunk a single HTML section, yielding (chunk_text, section_heading) pairs.
+    All chunks from the same section share the same heading metadata.
+    """
+    for chunk in chunk_text(section_text):
+        yield chunk, section_heading
+
+
 # ── Tagging ───────────────────────────────────────────────────────────────────
 
 def _tag_chunk(
@@ -555,56 +673,80 @@ def ingest_source(
     print(f"  Collection: {source.collection} | Tier: {source.tier}")
     print(f"  Licence: {source.licence}")
 
-    text = ""
+    # ── Fetch / extract ───────────────────────────────────────────────────────
+    # pdf_pages: list[(page_num, text)]  — populated for PDF sources
+    # html_sections: list[(heading, text)] — populated for HTML sources
+    pdf_pages: list[tuple[int, str]] = []
+    html_sections: list[tuple[str, str]] = []
+    total_words = 0
 
     if source.source_type == "pdf":
-        # Determine PDF path
         pdf_path = local_pdf or (_PDFS_DIR / f"{source.key}.pdf")
         if pdf_path.exists():
             print(f"  Using cached PDF: {pdf_path}")
-            text = _extract_pdf_text(pdf_path)
         else:
             fetched = _fetch_pdf(source.url, source.alt_urls, pdf_path)
-            if fetched:
-                text = _extract_pdf_text(fetched)
-            else:
-                print(f"  ✗ SKIPPED — could not fetch {source.key}. Download manually to {pdf_path}")
+            if not fetched:
+                print(f"  ✗ SKIPPED — could not fetch. Download manually to {pdf_path}")
                 return {"source_key": source.key, "chunks_written": 0, "total_words": 0, "skipped": True}
 
+        pdf_pages = _extract_pdf_pages(pdf_path)
+        total_words = sum(_word_count(t) for _, t in pdf_pages)
+        if not pdf_pages:
+            print(f"  ✗ SKIPPED — extracted text is empty")
+            return {"source_key": source.key, "chunks_written": 0, "total_words": 0, "skipped": True}
+        print(f"  Extracted {total_words:,} words across {len(pdf_pages)} pages")
+
     elif source.source_type == "html":
-        text = _fetch_html_text(source.url)
-        if not text:
+        html_sections = _fetch_html_sections(source.url)
+        if not html_sections:
             print(f"  ✗ SKIPPED — could not extract content from {source.url}")
             return {"source_key": source.key, "chunks_written": 0, "total_words": 0, "skipped": True}
+        total_words = sum(_word_count(t) for _, t in html_sections)
+        print(f"  Extracted {total_words:,} words across {len(html_sections)} sections")
 
-    if not text.strip():
-        print(f"  ✗ SKIPPED — extracted text is empty")
-        return {"source_key": source.key, "chunks_written": 0, "total_words": 0, "skipped": True}
+    # ── Chunk ─────────────────────────────────────────────────────────────────
+    # raw_chunks: list of dicts with keys text, page_start (or section_heading)
+    raw_chunks: list[dict] = []
 
-    total_words = _word_count(text)
-    print(f"  Extracted {total_words:,} words")
+    if pdf_pages:
+        for chunk_text_val, page_start, page_end in chunk_paged_text(pdf_pages):
+            raw_chunks.append({
+                "text": chunk_text_val,
+                "page_start": page_start,
+                "page_end": page_end,
+                "section": None,
+            })
+    else:
+        for heading, section_body in html_sections:
+            for chunk_text_val, section_heading in chunk_html_section(section_body, heading):
+                raw_chunks.append({
+                    "text": chunk_text_val,
+                    "page_start": None,
+                    "page_end": None,
+                    "section": section_heading,
+                })
 
-    # Chunk
-    chunks = list(chunk_text(text))
-    print(f"  Produced {len(chunks)} chunks (~{TARGET_CHUNK_TOKENS} tokens each)")
+    print(f"  Produced {len(raw_chunks)} chunks (~{TARGET_CHUNK_TOKENS} tokens each)")
 
     if dry_run:
-        sizes = [_word_count(c) for c in chunks]
-        print(f"  [DRY RUN] word stats: min={min(sizes)}, max={max(sizes)}, avg={sum(sizes)//len(sizes)}")
+        sizes = [_word_count(c["text"]) for c in raw_chunks]
+        if sizes:
+            print(f"  [DRY RUN] word stats: min={min(sizes)}, max={max(sizes)}, avg={sum(sizes)//len(sizes)}")
         return {"source_key": source.key, "chunks_written": 0, "total_words": total_words, "skipped": False}
 
-    # Tag and write
+    # ── Tag and write ─────────────────────────────────────────────────────────
     from backend.ai.rag_engine import RAGEngine
     engine = RAGEngine()
 
     docs, metadatas, ids = [], [], []
-    for idx, chunk in enumerate(chunks):
+    for idx, rc in enumerate(raw_chunks):
         condition_tags, drugs_tagged = _tag_chunk(
-            chunk, source.condition_hints, source.drug_hints
+            rc["text"], source.condition_hints, source.drug_hints
         )
-        chunk_id = _chunk_id(source.key, idx, chunk)
-        docs.append(chunk)
-        metadatas.append({
+        chunk_id = _chunk_id(source.key, idx, rc["text"])
+        docs.append(rc["text"])
+        meta: dict = {
             "title": source.title,
             "source_key": source.key,
             "source_url": source.url,
@@ -613,7 +755,13 @@ def ingest_source(
             "chunk_index": idx,
             "condition_tags": condition_tags,
             "drugs_tagged": drugs_tagged,
-        })
+        }
+        if rc["page_start"] is not None:
+            meta["page_start"] = rc["page_start"]
+            meta["page_end"] = rc["page_end"]
+        if rc["section"]:
+            meta["section"] = rc["section"]
+        metadatas.append(meta)
         ids.append(chunk_id)
 
     engine.add_documents(
@@ -622,8 +770,8 @@ def ingest_source(
         metadatas=metadatas,
         ids=ids,
     )
-    print(f"  ✓ Wrote {len(chunks)} chunks → collection '{source.collection}'")
-    return {"source_key": source.key, "chunks_written": len(chunks), "total_words": total_words, "skipped": False}
+    print(f"  ✓ Wrote {len(raw_chunks)} chunks → collection '{source.collection}'")
+    return {"source_key": source.key, "chunks_written": len(raw_chunks), "total_words": total_words, "skipped": False}
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
