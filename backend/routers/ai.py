@@ -23,6 +23,28 @@ from backend.ai.prompt_templates import (
 
 _rag_engine = None
 
+
+def _format_citation(meta: dict) -> str:
+    """Build a readable citation string including page or section when available."""
+    title = meta.get("title", "Reference")
+    source_url = meta.get("source_url", "")
+    page_start = meta.get("page_start")
+    page_end = meta.get("page_end")
+    section = meta.get("section")
+
+    cite = title
+    if page_start is not None:
+        if page_end and page_end != page_start:
+            cite += f", pp. {page_start}–{page_end}"
+        else:
+            cite += f", p. {page_start}"
+    elif section:
+        cite += f" — {section}"
+    if source_url:
+        cite += f" [{source_url}]"
+    return cite
+
+
 def get_rag_engine():
     global _rag_engine
     if _rag_engine is None:
@@ -161,9 +183,7 @@ async def triage_query(payload: TriageQueryRequest, db: Session = Depends(get_db
         has_rag = True
         user_prompt += "\nRelevant Protocol Excerpts:\n"
         for r in rag_results:
-            title = r['metadata'].get('title', 'Protocol')
-            source_url = r['metadata'].get('source_url', '')
-            cite = f"{title}" + (f" [{source_url}]" if source_url else "")
+            cite = _format_citation(r['metadata'])
             user_prompt += f"- {r['text']} (Source: {cite})\n"
 
     system = TRIAGE_SYSTEM
@@ -235,8 +255,8 @@ async def transport_decision(payload: TransportDecisionRequest, db: Session = De
     if rag_results:
         user_prompt += "\nRelevant Protocol Excerpts:\n"
         for r in rag_results:
-            title = r['metadata'].get('title', 'Reference')
-            user_prompt += f"- {r['text']} (Source: {title})\n"
+            cite = _format_citation(r['metadata'])
+            user_prompt += f"- {r['text']} (Source: {cite})\n"
 
     system = TRANSPORT_DECISION_SYSTEM
     system += SUCCINCT_MODIFIER
@@ -276,8 +296,8 @@ async def drug_interaction(payload: DrugInteractionQueryRequest):
     if rag_results:
         user_prompt += "\nRelevant Clinical References:\n"
         for r in rag_results:
-            title = r['metadata'].get('title', 'Reference')
-            user_prompt += f"- {r['text']} (Source: {title})\n"
+            cite = _format_citation(r['metadata'])
+            user_prompt += f"- {r['text']} (Source: {cite})\n"
 
     system = DRUG_INTERACTION_SYSTEM
     system += SUCCINCT_MODIFIER
@@ -330,9 +350,7 @@ async def chat(payload: ChatRequest, db: Session = Depends(get_db)):
         has_rag = True
         context_lines.append("\nRelevant Clinical Guidelines:")
         for r in (protocols_rag + substance_rag + mass_rag):
-            title = r['metadata'].get('title', 'Reference')
-            source_url = r['metadata'].get('source_url', '')
-            cite = f"{title}" + (f" — {source_url}" if source_url else "")
+            cite = _format_citation(r['metadata'])
             context_lines.append(f"- {r['text']} (Source: {cite})")
 
     if context_lines:

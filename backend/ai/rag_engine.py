@@ -137,6 +137,13 @@ class RAGEngine:
         except (json.JSONDecodeError, KeyError, IOError) as exc:
             print(f"[RAGEngine] bootstrap error: {exc}")
 
+        # Also seed extended clinical content if available
+        try:
+            from backend.data.seed_knowledge import seed_knowledge_base
+            seed_knowledge_base(engine=self)
+        except Exception:
+            pass  # seed module optional; gracefully skip
+
     def add_documents(
         self,
         collection_name: str,
