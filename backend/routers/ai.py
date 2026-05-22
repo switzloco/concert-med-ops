@@ -36,10 +36,11 @@ router = APIRouter()
 @router.get("/knowledge-stats")
 def get_knowledge_stats():
     engine = get_rag_engine()
-    return {
-        "harm_reduction_protocols": engine.collection_stats("harm_reduction_protocols"),
-        "substance_database": engine.collection_stats("substance_database"),
-    }
+    stats = engine.all_collection_stats()
+    # Always surface the core collections even if empty
+    for col in ("harm_reduction_protocols", "substance_database", "mass_gathering_protocols"):
+        stats.setdefault(col, 0)
+    return stats
 
 
 class ChatMessage(BaseModel):
@@ -140,19 +141,30 @@ async def triage_query(payload: TriageQueryRequest, db: Session = Depends(get_db
     if payload.notes:
         user_prompt += f"Clinical Notes: {payload.notes}\n"
 
-    # Search knowledge base
+    # Hybrid RAG: BM25 on symptoms + exact-match boost on substance names
     query_terms = " ".join(payload.current_symptoms)
-    if reported_substances:
-        query_terms += " " + " ".join([s.get("name", "") for s in reported_substances])
-        
-    rag_results = get_rag_engine().query("harm_reduction_protocols", query_terms, k=3)
+    if payload.notes:
+        query_terms += " " + payload.notes
+    drug_names = [s.get("name", "") for s in reported_substances if s.get("name")]
+
+    rag_engine = get_rag_engine()
+    # Search across both clinical protocols and mass gathering ops collections
+    rag_results = rag_engine.hybrid_query(
+        "harm_reduction_protocols", query_terms, drug_names=drug_names or None, k=5
+    )
+    rag_results += rag_engine.hybrid_query(
+        "mass_gathering_protocols", query_terms, drug_names=drug_names or None, k=2
+    )
+
     has_rag = False
     if rag_results:
         has_rag = True
         user_prompt += "\nRelevant Protocol Excerpts:\n"
         for r in rag_results:
             title = r['metadata'].get('title', 'Protocol')
-            user_prompt += f"- {r['text']} (Source: {title})\n"
+            source_url = r['metadata'].get('source_url', '')
+            cite = f"{title}" + (f" [{source_url}]" if source_url else "")
+            user_prompt += f"- {r['text']} (Source: {cite})\n"
 
     system = TRIAGE_SYSTEM
     if has_rag:
@@ -215,10 +227,16 @@ async def transport_decision(payload: TransportDecisionRequest, db: Session = De
     if payload.notes:
         user_prompt += f"Additional Notes: {payload.notes}\n"
 
-    # Query capacity checklist from RAG
-    rag_results = get_rag_engine().query("harm_reduction_protocols", "AMA Refusal Capacity Checklist", k=1)
+    # Query transport/triage from RAG
+    rag_engine = get_rag_engine()
+    transport_query = f"hospital transport triage {' '.join(payload.current_symptoms)}"
+    rag_results = rag_engine.hybrid_query("mass_gathering_protocols", transport_query, k=2)
+    rag_results += rag_engine.hybrid_query("harm_reduction_protocols", "AMA Refusal Capacity Checklist", k=1)
     if rag_results:
-        user_prompt += f"\nAgainst Medical Advice Reference:\n{rag_results[0]['text']}\n"
+        user_prompt += "\nRelevant Protocol Excerpts:\n"
+        for r in rag_results:
+            title = r['metadata'].get('title', 'Reference')
+            user_prompt += f"- {r['text']} (Source: {title})\n"
 
     system = TRANSPORT_DECISION_SYSTEM
     system += SUCCINCT_MODIFIER
@@ -243,16 +261,23 @@ async def drug_interaction(payload: DrugInteractionQueryRequest):
 
     user_prompt = f"Evaluate interactions between these substances: {', '.join(payload.substances)}\n"
     
-    # Query substance profiles from RAG
+    # Hybrid query: drug-name exact-match boost across both collections
     rag_engine = get_rag_engine()
-    kb_excerpts = []
-    for sub in payload.substances:
-        res = rag_engine.query("substance_database", sub, k=1)
-        if res:
-            kb_excerpts.append(res[0]['text'])
+    drug_names = [s.strip().lower() for s in payload.substances]
+    interaction_query = " ".join(payload.substances) + " interaction toxicity"
 
-    if kb_excerpts:
-        user_prompt += "\nSubstance Database Information:\n" + "\n\n".join(kb_excerpts)
+    rag_results = rag_engine.hybrid_query(
+        "harm_reduction_protocols", interaction_query, drug_names=drug_names, k=5
+    )
+    rag_results += rag_engine.hybrid_query(
+        "substance_database", interaction_query, drug_names=drug_names, k=2
+    )
+
+    if rag_results:
+        user_prompt += "\nRelevant Clinical References:\n"
+        for r in rag_results:
+            title = r['metadata'].get('title', 'Reference')
+            user_prompt += f"- {r['text']} (Source: {title})\n"
 
     system = DRUG_INTERACTION_SYSTEM
     system += SUCCINCT_MODIFIER
@@ -293,19 +318,22 @@ async def chat(payload: ChatRequest, db: Session = Depends(get_db)):
                         f"    - Type={enc.doc_type.upper()}, Complaint={enc.chief_complaint or 'None'}, Triage={enc.triage_level.upper()}, Disposition={enc.disposition}"
                     )
 
-    # Perform RAG on the last message
+    # Hybrid RAG on last message across all collections
     last_msg = payload.messages[-1].content
     rag_engine = get_rag_engine()
-    protocols_rag = rag_engine.query("harm_reduction_protocols", last_msg, k=2)
-    substance_rag = rag_engine.query("substance_database", last_msg, k=1)
+    protocols_rag = rag_engine.hybrid_query("harm_reduction_protocols", last_msg, k=3)
+    substance_rag = rag_engine.hybrid_query("substance_database", last_msg, k=1)
+    mass_rag = rag_engine.hybrid_query("mass_gathering_protocols", last_msg, k=1)
 
     has_rag = False
-    if protocols_rag or substance_rag:
+    if protocols_rag or substance_rag or mass_rag:
         has_rag = True
         context_lines.append("\nRelevant Clinical Guidelines:")
-        for r in (protocols_rag + substance_rag):
+        for r in (protocols_rag + substance_rag + mass_rag):
             title = r['metadata'].get('title', 'Reference')
-            context_lines.append(f"- {r['text']} (Source: {title})")
+            source_url = r['metadata'].get('source_url', '')
+            cite = f"{title}" + (f" — {source_url}" if source_url else "")
+            context_lines.append(f"- {r['text']} (Source: {cite})")
 
     if context_lines:
         system += "\n\nContext for this session:\n" + "\n".join(context_lines)
