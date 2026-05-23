@@ -364,7 +364,7 @@ export default function NewEncounterPage() {
           />
           <button
             type="button"
-            onClick={handleAIExtract}
+            onClick={() => handleAIExtract()}
             disabled={isExtracting || !rawIntakeText.trim()}
             className="bg-cyber-neonPurple text-white hover:bg-cyber-neonPurple/95 disabled:opacity-50 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1 shadow-neonPurple shrink-0"
           >
