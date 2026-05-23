@@ -777,6 +777,13 @@ def ingest_source(
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    # Ensure stdout handles UTF-8 on Windows
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
+
     parser = argparse.ArgumentParser(
         description="Ingest Tier-1 (and optional Tier-2) RAG sources into Concert Med Ops knowledge store."
     )

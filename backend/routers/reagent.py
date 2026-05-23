@@ -98,7 +98,7 @@ async def identify_photo(
                 max_output_tokens=1024,
             )
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=settings.cloud_model,
                 contents=[
                     types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"),
                     prompt

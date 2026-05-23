@@ -62,7 +62,7 @@ jobs:
         run: |
           if [ -n "$GOOGLE_API_KEY_PREVIEW" ]; then
             echo "GOOGLE_API_KEY=${GOOGLE_API_KEY_PREVIEW}" >> .env
-            echo "CLOUD_MODEL=gemini-2.5-flash" >> .env
+            echo "CLOUD_MODEL=gemini-3-flash" >> .env
             echo "✓ Cloud preview key baked into .env (CLOUD_MODE left unset — defaults to local)"
           else
             echo "⚠ GOOGLE_API_KEY_PREVIEW not set — building without cloud preview key"

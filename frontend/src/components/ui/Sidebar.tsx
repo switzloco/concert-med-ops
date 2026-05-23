@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   Activity, ClipboardList, Users, ClipboardPlus, 
-  Sparkles, FlaskConical, Package, Settings, X, Share2 
+  Sparkles, FlaskConical, Package, Settings, X, Share2,
+  GraduationCap
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
@@ -76,6 +77,32 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
 
         <nav className="flex-1 py-4 space-y-6 overflow-y-auto">
           <div>
+            <p className="px-5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">AI & Clinical Tools</p>
+            {[
+              { href: "/chat", label: "Ask AI Assistant", icon: Sparkles },
+              { href: "/reagent", label: "Reagent Log", icon: FlaskConical },
+              { href: "/training", label: "AI Staff Training", icon: GraduationCap },
+            ].map(({ href, label, icon: Icon }) => {
+              const active = path.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-zinc-900 text-cyber-neonPurple border-l-2 border-cyber-neonPurple"
+                      : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
+                  }`}
+                  onClick={() => onClose()}
+                >
+                  <Icon size={18} className={active ? "text-cyber-neonPurple" : ""} />
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+
+          <div>
             <p className="px-5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Operations</p>
             {[
               { href: "/board", label: "Triage Board", icon: ClipboardList },
@@ -96,31 +123,6 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                   onClick={() => onClose()}
                 >
                   <Icon size={18} />
-                  {label}
-                </Link>
-              );
-            })}
-          </div>
-
-          <div>
-            <p className="px-5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">AI & Clinical Tools</p>
-            {[
-              { href: "/chat", label: "Ask AI Assistant", icon: Sparkles },
-              { href: "/reagent", label: "Reagent Log", icon: FlaskConical },
-            ].map(({ href, label, icon: Icon }) => {
-              const active = path.startsWith(href);
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
-                    active
-                      ? "bg-zinc-900 text-cyber-neonPurple border-l-2 border-cyber-neonPurple"
-                      : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
-                  }`}
-                  onClick={() => onClose()}
-                >
-                  <Icon size={18} className={active ? "text-cyber-neonPurple" : ""} />
                   {label}
                 </Link>
               );

@@ -346,7 +346,7 @@ class TestWriteJsonl:
         examples = [{"a": 1}, {"b": 2}, {"c": 3}]
         out = tmp_path / "out.jsonl"
         write_jsonl(examples, out)
-        lines = out.read_text().strip().splitlines()
+        lines = out.read_text(encoding="utf-8").strip().splitlines()
         assert len(lines) == 3
 
     def test_each_line_is_valid_json(self, tmp_path):
@@ -355,7 +355,7 @@ class TestWriteJsonl:
         ]
         out = tmp_path / "out.jsonl"
         write_jsonl(examples, out)
-        for line in out.read_text().strip().splitlines():
+        for line in out.read_text(encoding="utf-8").strip().splitlines():
             parsed = json.loads(line)
             assert "conversations" in parsed
 
@@ -363,20 +363,20 @@ class TestWriteJsonl:
         original = [to_sharegpt({"question": "Q?", "answer": "A."})]
         out = tmp_path / "out.jsonl"
         write_jsonl(original, out)
-        loaded = [json.loads(l) for l in out.read_text().strip().splitlines()]
+        loaded = [json.loads(l) for l in out.read_text(encoding="utf-8").strip().splitlines()]
         assert loaded == original
 
     def test_unicode_preserved(self, tmp_path):
         out = tmp_path / "unicode.jsonl"
         write_jsonl([{"text": "Naloxone 4mg — nasal spray ✅"}], out)
-        loaded = json.loads(out.read_text().strip())
+        loaded = json.loads(out.read_text(encoding="utf-8").strip())
         assert "✅" in loaded["text"]
 
     def test_overwrites_existing_file(self, tmp_path):
         out = tmp_path / "out.jsonl"
         write_jsonl([{"first": True}], out)
         write_jsonl([{"second": True}, {"third": True}], out)
-        lines = out.read_text().strip().splitlines()
+        lines = out.read_text(encoding="utf-8").strip().splitlines()
         assert len(lines) == 2
         assert json.loads(lines[0]) == {"second": True}
 
@@ -428,7 +428,7 @@ class TestFullPipeline:
         examples = build_dataset(kb_path=minimal_kb_file, fmt="sharegpt")
         write_jsonl(examples, output)
 
-        lines = output.read_text().strip().splitlines()
+        lines = output.read_text(encoding="utf-8").strip().splitlines()
         assert len(lines) == len(examples)
 
         for line in lines:
@@ -444,7 +444,7 @@ class TestFullPipeline:
         examples = build_dataset(kb_path=minimal_kb_file, fmt="alpaca")
         write_jsonl(examples, output)
 
-        for line in output.read_text().strip().splitlines():
+        for line in output.read_text(encoding="utf-8").strip().splitlines():
             ex = json.loads(line)
             assert ex["instruction"]
             assert ex["input"]

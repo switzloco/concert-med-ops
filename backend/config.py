@@ -66,8 +66,8 @@ class Settings(BaseSettings):
     # Turn this on to enable verbose debug logging to backend/data/logs/event_med_debug.log
     debug_mode: bool = True
     google_api_key: str = ""
-    # We will use gemini-2.5-flash as default cloud model for speed and capability
-    cloud_model: str = "gemini-2.5-flash"
+    # We will use gemini-3-flash as default cloud model for speed and capability
+    cloud_model: str = "gemini-3-flash"
 
     @field_validator("google_api_key", mode="before")
     @classmethod

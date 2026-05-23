@@ -72,7 +72,7 @@ class TestAIResponseQuality:
     @patch("backend.routers.ai.get_rag_engine")
     def test_triage_query_prompt_construction(self, mock_rag, mock_llm, client, seed_patient):
         # Mock RAG to return nothing
-        mock_rag.return_value.query.return_value = []
+        mock_rag.return_value.hybrid_query.return_value = []
         
         # Mock LLM to yield a single token
         async def mock_iter(*args, **kwargs):
@@ -111,7 +111,7 @@ class TestAIResponseQuality:
     @patch("backend.routers.ai.get_rag_engine")
     def test_triage_query_with_rag(self, mock_rag, mock_llm, client, seed_patient):
         # Mock RAG to return protocols
-        mock_rag.return_value.query.return_value = [
+        mock_rag.return_value.hybrid_query.return_value = [
             {"text": "Apply active cooling immediately for heat stroke.", "metadata": {"title": "Hyperthermia Protocol"}}
         ]
         

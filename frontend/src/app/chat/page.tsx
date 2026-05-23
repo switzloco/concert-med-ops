@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import type { Patient } from "@/lib/types";
@@ -23,6 +24,7 @@ const QUICK_PROMPTS = [
 ];
 
 export default function ChatPage() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   
   // Load history from LocalStorage on mount
@@ -181,6 +183,19 @@ export default function ChatPage() {
     }
   };
 
+  const handleStartLog = () => {
+    if (messages.length === 0) return;
+    const transcript = messages.map(m => {
+      const roleName = m.role === "user" ? "User" : "AI Assistant";
+      return `${roleName}: ${m.content}`;
+    }).join("\n\n");
+    sessionStorage.setItem("encounter_prefill_chat", transcript);
+    if (patientContext) {
+      sessionStorage.setItem("encounter_prefill_patient_id", patientContext);
+    }
+    router.push("/encounter");
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)] max-w-4xl space-y-4">
       {/* HEADER */}
@@ -196,12 +211,20 @@ export default function ChatPage() {
         </div>
 
         {messages.length > 0 && (
-          <button
-            onClick={handleClearHistory}
-            className="text-xs bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white px-2.5 py-1 rounded transition-colors font-bold uppercase tracking-wider"
-          >
-            Clear History
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleStartLog}
+              className="text-xs bg-cyber-neonPurple/20 border border-cyber-neonPurple/40 hover:bg-cyber-neonPurple/30 text-cyber-neonPurple px-3 py-1 rounded transition-colors font-black uppercase tracking-wider shadow-neonPurple/20 shadow-sm"
+            >
+              Start Log
+            </button>
+            <button
+              onClick={handleClearHistory}
+              className="text-xs bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white px-2.5 py-1 rounded transition-colors font-bold uppercase tracking-wider"
+            >
+              Clear History
+            </button>
+          </div>
         )}
       </div>
 
@@ -295,8 +318,21 @@ export default function ChatPage() {
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-zinc-200 leading-relaxed prose prose-invert max-w-none prose-xs">
-                  <ReactMarkdown>
+                <div className="text-xs text-zinc-200 leading-relaxed max-w-none">
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0 text-zinc-200">{children}</p>,
+                      strong: ({ children }) => <strong className="font-extrabold text-white">{children}</strong>,
+                      h1: ({ children }) => <h1 className="text-sm font-black text-white uppercase tracking-wider mt-4 mb-2 border-b border-zinc-900 pb-1">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-xs font-black text-white uppercase tracking-wider mt-3 mb-1.5">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-xs font-bold text-zinc-300 uppercase mt-2 mb-1">{children}</h3>,
+                      ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1 text-zinc-300">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1 text-zinc-300">{children}</ol>,
+                      li: ({ children }) => <li className="text-zinc-300">{children}</li>,
+                      code: ({ children }) => <code className="bg-zinc-900 text-cyber-neonPurple px-1.5 py-0.5 rounded font-mono text-[10px] border border-zinc-800">{children}</code>,
+                      a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyber-neonBlue hover:underline font-bold">{children}</a>,
+                    }}
+                  >
                     {m.content}
                   </ReactMarkdown>
                   {streaming && i === messages.length - 1 && m.role === "assistant" && (

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
@@ -103,6 +103,31 @@ export default function NewEncounterPage() {
     noPsychosis: false,
   });
   const [amaCapacityNote, setAmaCapacityNote] = useState("");
+  const [pendingPrefillPatientId, setPendingPrefillPatientId] = useState<string | null>(null);
+
+  // Prefill check on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const prefillChat = sessionStorage.getItem("encounter_prefill_chat");
+      const prefillPatientId = sessionStorage.getItem("encounter_prefill_patient_id");
+      
+      if (prefillChat) {
+        setRawIntakeText(prefillChat);
+        sessionStorage.removeItem("encounter_prefill_chat");
+        
+        if (prefillPatientId) {
+          setSelectedPatientId(prefillPatientId);
+          setIsNewPatient(false);
+          setPendingPrefillPatientId(prefillPatientId);
+        } else {
+          setIsNewPatient(true);
+        }
+        
+        // Trigger auto-extraction
+        handleAIExtract(prefillChat);
+      }
+    }
+  }, []);
 
   // Fetch lists
   const { data: patients } = useQuery<Patient[]>({
@@ -119,6 +144,17 @@ export default function NewEncounterPage() {
     queryKey: ["hospitals"],
     queryFn: () => apiFetch<HospitalDirectory[]>("/hospitals"),
   });
+
+  // Update substances from patient when patient data finishes loading
+  useEffect(() => {
+    if (pendingPrefillPatientId && patients) {
+      const pat = patients.find(p => p.patient_id === pendingPrefillPatientId);
+      if (pat?.substances_reported) {
+        setSubstances(pat.substances_reported);
+      }
+      setPendingPrefillPatientId(null);
+    }
+  }, [patients, pendingPrefillPatientId]);
 
   // Mutation to create a patient
   const createPatientMutation = useMutation({
@@ -146,15 +182,16 @@ export default function NewEncounterPage() {
   });
 
   // AI Extract intake note
-  const handleAIExtract = async () => {
-    if (!rawIntakeText.trim()) return;
+  const handleAIExtract = async (textOverride?: string) => {
+    const textToExtract = textOverride !== undefined ? textOverride : rawIntakeText;
+    if (!textToExtract.trim()) return;
     setIsExtracting(true);
     try {
       const activeEventId = patients?.[0]?.event_id || "griztronics-2026";
       const res = await apiFetch<any>("/ai/extract-encounter-info", {
         method: "POST",
         body: JSON.stringify({
-          text: rawIntakeText,
+          text: textToExtract,
           event_id: activeEventId
         })
       });
@@ -187,13 +224,17 @@ export default function NewEncounterPage() {
 
         // Substances
         if (res.substances_involved && Array.isArray(res.substances_involved)) {
-          const newSubs = res.substances_involved.map((sub: string) => ({
+          const newSubs: SubstanceReported[] = res.substances_involved.map((sub: string) => ({
             name: sub,
             route: "Oral",
             time_taken: "Unknown",
             amount: "Unknown"
           }));
-          setSubstances(prev => [...prev, ...newSubs]);
+          setSubstances(prev => {
+            const existingNames = new Set(prev.map(s => s.name.toLowerCase()));
+            const filteredNew = newSubs.filter(s => !existingNames.has(s.name.toLowerCase()));
+            return [...prev, ...filteredNew];
+          });
         }
       }
     } catch (error) {

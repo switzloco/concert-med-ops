@@ -394,8 +394,79 @@ def to_alpaca(qa: dict[str, str], system: str = SYSTEM_PROMPT) -> dict:
     }
 
 
+TAG_TO_CATEGORY_MAP = {
+    "serotonin_syndrome": "toxicology",
+    "hyponatremia": "toxicology",
+    "ghb_intoxication": "toxicology",
+    "withdrawal": "toxicology",
+    "opioid_overdose": "overdose",
+    "agitation": "clinical",
+    "rhabdomyolysis": "clinical",
+    "triage_mci": "triage",
+    "transport": "triage",
+    "mass_gathering_ops": "triage",
+    "harm_reduction": "harm_reduction",
+    "heat_stroke": "heat_stroke"
+}
+
+
+def load_kb_from_sqlite(db_path: pathlib.Path) -> list[dict]:
+    import sqlite3
+    if not db_path.exists():
+        raise FileNotFoundError(f"SQLite knowledge database not found: {db_path}")
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute("SELECT collection, text, metadata, chunk_id FROM rag_chunks").fetchall()
+    except sqlite3.OperationalError as exc:
+        conn.close()
+        raise RuntimeError(f"Failed to query rag_chunks. Make sure database is initialized and ingested: {exc}")
+
+    collections: dict[str, list[dict]] = {}
+    for r in rows:
+        col = r["collection"]
+        try:
+            meta = json.loads(r["metadata"]) if r["metadata"] else {}
+        except Exception:
+            meta = {}
+
+        # Determine category for QA templates
+        if "category" not in meta:
+            # Try to map condition tags
+            tags = meta.get("condition_tags", [])
+            mapped_category = None
+            for tag in tags:
+                if tag in TAG_TO_CATEGORY_MAP:
+                    mapped_category = TAG_TO_CATEGORY_MAP[tag]
+                    break
+            meta["category"] = mapped_category or "clinical"
+
+        # Ensure page/section info is clean for _fill_answer
+        if "page" not in meta:
+            if "page_start" in meta:
+                meta["page"] = meta["page_start"]
+            elif "section" in meta:
+                meta["page"] = meta["section"]
+
+        chunk = {
+            "id": r["chunk_id"],
+            "text": r["text"],
+            "metadata": meta
+        }
+        collections.setdefault(col, []).append(chunk)
+
+    conn.close()
+
+    return [
+        {"collection": name, "chunks": chunks}
+        for name, chunks in collections.items()
+    ]
+
+
 def build_dataset(
-    kb_path: pathlib.Path = KB_PATH,
+    kb_path: pathlib.Path | None = KB_PATH,
+    sqlite_path: pathlib.Path | None = None,
     fmt: str = "sharegpt",
     shuffle_seed: int | None = 42,
 ) -> list[dict]:
@@ -404,17 +475,20 @@ def build_dataset(
 
     Args:
         kb_path: Path to harm_reduction_kb.json.
+        sqlite_path: Path to knowledge.sqlite database.
         fmt: Output format — "sharegpt" (default) or "alpaca".
         shuffle_seed: Random seed for reproducible shuffling. None = no shuffle.
 
     Returns:
         List of formatted training examples.
     """
-    if not kb_path.exists():
-        raise FileNotFoundError(f"Knowledge base not found: {kb_path}")
-
-    with kb_path.open() as f:
-        kb = json.load(f)
+    if sqlite_path is not None:
+        kb = load_kb_from_sqlite(sqlite_path)
+    else:
+        if kb_path is None or not kb_path.exists():
+            raise FileNotFoundError(f"Knowledge base not found: {kb_path}")
+        with kb_path.open(encoding="utf-8") as f:
+            kb = json.load(f)
 
     pairs = kb_to_qa_pairs(kb) + HANDCRAFTED_PAIRS
 
@@ -430,7 +504,7 @@ def build_dataset(
 
 def write_jsonl(examples: list[dict], output_path: pathlib.Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w") as f:
+    with output_path.open("w", encoding="utf-8") as f:
         for ex in examples:
             f.write(json.dumps(ex, ensure_ascii=False) + "\n")
 
@@ -438,12 +512,23 @@ def write_jsonl(examples: list[dict], output_path: pathlib.Path) -> None:
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    # Ensure stdout handles UTF-8 on Windows
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
+
     parser = argparse.ArgumentParser(
         description="Generate Unsloth fine-tune training data from the Concert Med Ops KB."
     )
     parser.add_argument(
         "--kb", type=pathlib.Path, default=KB_PATH,
         help="Path to harm_reduction_kb.json",
+    )
+    parser.add_argument(
+        "--sqlite", type=pathlib.Path, default=None,
+        help="Path to knowledge.sqlite (extracts training examples from all ingested PDFs/HTML)",
     )
     parser.add_argument(
         "--output", "-o", type=pathlib.Path, default=DEFAULT_OUTPUT,
@@ -460,12 +545,19 @@ def main() -> None:
     args = parser.parse_args()
 
     seed = None if args.no_shuffle else 42
-    examples = build_dataset(kb_path=args.kb, fmt=args.format, shuffle_seed=seed)
+    if args.sqlite:
+        examples = build_dataset(kb_path=None, sqlite_path=args.sqlite, fmt=args.format, shuffle_seed=seed)
+    else:
+        examples = build_dataset(kb_path=args.kb, sqlite_path=None, fmt=args.format, shuffle_seed=seed)
+        
     write_jsonl(examples, args.output)
 
     print(f"✅ Generated {len(examples)} training examples → {args.output}")
     print(f"   Format: {args.format}")
-    print(f"   KB: {args.kb}")
+    if args.sqlite:
+        print(f"   Source: SQLite ({args.sqlite})")
+    else:
+        print(f"   Source: KB ({args.kb})")
 
     # Print a sample
     print("\n── Sample (first example) ──────────────────────────────────────────")
