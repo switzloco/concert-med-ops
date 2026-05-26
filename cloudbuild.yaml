@@ -82,7 +82,7 @@ steps:
       - |
         npm install -g firebase-tools
         cd frontend
-        firebase deploy --only hosting --project=$PROJECT_ID --non-interactive
+        firebase deploy --only hosting:event-med-ai --project=$PROJECT_ID --non-interactive
     waitFor: [build-frontend]
 
 images:
