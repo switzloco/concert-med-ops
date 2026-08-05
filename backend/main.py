@@ -46,6 +46,7 @@ Base.metadata.create_all(bind=engine)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -86,8 +87,9 @@ app.include_router(uploads.router, prefix="/api/uploads", tags=["uploads"])
 
 # Serve the embedded Next.js static export when present
 _FRONTEND = Path(__file__).parent.parent / "frontend_out"
-if _FRONTEND.is_dir():
-    app.mount("/_next", StaticFiles(directory=str(_FRONTEND / "_next")), name="nextjs-assets")
+if (_FRONTEND / "index.html").is_file():
+    if (_FRONTEND / "_next").is_dir():
+        app.mount("/_next", StaticFiles(directory=str(_FRONTEND / "_next")), name="nextjs-assets")
     
     if (_FRONTEND / "images").is_dir():
         app.mount("/images", StaticFiles(directory=str(_FRONTEND / "images")), name="public-images")
@@ -107,4 +109,8 @@ if _FRONTEND.is_dir():
         if index_candidate.is_file():
             return FileResponse(str(index_candidate))
 
-        return FileResponse(str(_FRONTEND / "index.html"))
+        if (_FRONTEND / "index.html").is_file():
+            return FileResponse(str(_FRONTEND / "index.html"))
+
+        raise HTTPException(status_code=404, detail="Not Found")
+
